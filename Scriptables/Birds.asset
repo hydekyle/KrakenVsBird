@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a5ef5e203f00f8458bcdce8d586b14a, type: 3}
+  m_Name: Birds
+  m_EditorClassIdentifier: 
+  eggs_sprites:
+  - {fileID: -5613007430699114959, guid: cff3cf2255133794588459f459fd376b, type: 3}
+  - {fileID: -8040725930831674068, guid: cff3cf2255133794588459f459fd376b, type: 3}
+  - {fileID: 6432061653354192990, guid: cff3cf2255133794588459f459fd376b, type: 3}
+  - {fileID: -806992883746811487, guid: cff3cf2255133794588459f459fd376b, type: 3}
+  - {fileID: -4683107884648665675, guid: cff3cf2255133794588459f459fd376b, type: 3}
+  - {fileID: -6870222115372252165, guid: cff3cf2255133794588459f459fd376b, type: 3}
+  - {fileID: -5676723709083956296, guid: cff3cf2255133794588459f459fd376b, type: 3}
+  - {fileID: 7800784512013206139, guid: cff3cf2255133794588459f459fd376b, type: 3}
+  - {fileID: 9109795233776230528, guid: cff3cf2255133794588459f459fd376b, type: 3}
+  birds:
+  - rarity: 0
+    name: Lemonade
+    stats:
+      velocity: 4
+      weight: 1
+      force: 3
+    sprites:
+    - {fileID: 21300000, guid: 774f87333399a9d47a1013e78278bf27, type: 3}
+    - {fileID: 21300000, guid: fd3b5696c556ba949b710b5ac0e43437, type: 3}
+  - rarity: 0
+    name: Kawi
+    stats:
+      velocity: 3
+      weight: 2
+      force: 3
+    sprites:
+    - {fileID: 21300000, guid: 6edf8b07304ee484e9bb04188cf299a9, type: 3}
+    - {fileID: 21300000, guid: 09763a0388f6aa444976243726dbe49f, type: 3}
+  - rarity: 0
+    name: Kani
+    stats:
+      velocity: 3
+      weight: 2
+      force: 3
+    sprites:
+    - {fileID: 21300000, guid: 3f9ab5c7929189746a0314c6e2ebb311, type: 3}
+    - {fileID: 21300000, guid: 3893dacc44d015447addaece6e20db45, type: 3}
+  - rarity: 1
+    name: Zomba
+    stats:
+      velocity: 2
+      weight: 3
+      force: 3
+    sprites:
+    - {fileID: 21300000, guid: 5cd6119ac535b274e8cd79f92a12b937, type: 3}
+    - {fileID: 21300000, guid: 21dc1b976f0ac1c4e8748bde10d1c38e, type: 3}
+  - rarity: 2
+    name: Dracula
+    stats:
+      velocity: 4
+      weight: 3
+      force: 4
+    sprites:
+    - {fileID: 21300000, guid: 2c5f6f400b3057d4f81a063661315556, type: 3}
+    - {fileID: 21300000, guid: a556eb4bef7ce3643b9d07e9cb26445f, type: 3}
