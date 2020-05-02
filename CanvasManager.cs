@@ -46,6 +46,17 @@ public class CanvasManager : MonoBehaviour
         textDisplayer.text = playerName;
     }
 
+    public void CreateRoom()
+    {
+        NetworkController.Instance.HostGame("test");
+    }
+
+    public void JoinToRoom()
+    {
+        NetworkController.Instance.ConnectToRoom("test");
+    }
+
+
     public void ShowMessage(string msg)
     {
         UI_msg_displayer.text = msg;
@@ -76,8 +87,19 @@ public class CanvasManager : MonoBehaviour
 
     public void BTN_Egg()
     {
+        string textName = GetTextNameValue();
+        print(textName.Length);
+        if (textName.Length == 7)
+        {
+            CreateRoom();
+            Debug.Log("pollando");
+        }
+        else JoinToRoom();
+    }
+
+    public void DesactivateMainMenu()
+    {
         UI_main_menu.gameObject.SetActive(false);
-        NetworkController.Instance.HostGame("Test");
     }
 
 }

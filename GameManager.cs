@@ -26,24 +26,53 @@ public class GameManager : MonoBehaviour
     private void Update()
     {
         foreach (BirdPlayer bird in birdPlayers) bird.Update();
-        if (Input.GetKeyDown(KeyCode.Mouse0))
-            birdPlayers.Find(bird => bird.ID == PhotonNetwork.LocalPlayer.ActorNumber)?.JumpLeft();
 
-        if (Input.GetKeyDown(KeyCode.Mouse1))
-            birdPlayers.Find(bird => bird.ID == PhotonNetwork.LocalPlayer.ActorNumber)?.JumpRight();
+        if (Input.GetKeyDown(KeyCode.Mouse0)) SendAction(PlayerAction.JumpLeft);
+        if (Input.GetKeyDown(KeyCode.Mouse1)) SendAction(PlayerAction.JumpRight);
 
         if (Input.GetKeyDown(KeyCode.P)) Cheats();
     }
+
+    void SendAction(PlayerAction action)
+    {
+        BirdPlayer birdPlayer = GetMyBirdPlayer();
+        if (birdPlayer != null)
+        {
+            PlayerData playerData = new PlayerData();
+            playerData.action = action;
+            playerData.actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
+            playerData.pos_angle = birdPlayer.rotationPoint.eulerAngles.y;
+            playerData.pos_height = birdPlayer.birdTransform.localPosition.y;
+            NetworkController.Instance.CallRPC("PlayerJump", playerData);
+        }
+    }
+
+    public BirdPlayer GetMyBirdPlayer()
+    {
+        return birdPlayers.Find(bird => bird.ID == PhotonNetwork.LocalPlayer.ActorNumber);
+    }
+
     public Stats cheatStats;
     void Cheats()
     {
         birdPlayers[0].stats = cheatStats;
     }
 
+    public void UpdatePlayerListAll()
+    {
+        NetworkController.Instance.UpdatePlayerList(birdPlayers);
+    }
+
     public void SpawnPlayer(Player player)
     {
-        AddBirdPlayer(GenerateBirdPlayer(player));
         CanvasManager.Instance.DisplayPlayerOnTab(player.NickName, player.ActorNumber);
+        if (player.ActorNumber > 1) AddBirdPlayer(GenerateBirdPlayer(player));
+        else AddKrakenPlayer();
+    }
+
+    public void AddKrakenPlayer()
+    {
+
     }
 
     public void AddBirdPlayer(BirdPlayer birdPlayer)
@@ -56,7 +85,7 @@ public class GameManager : MonoBehaviour
     public Transform GetBirdTransform(int actorNumber)
     {
         Transform birdTransform;
-        switch (actorNumber)
+        switch (actorNumber - 1)
         {
             case 1: birdTransform = player1Transform.GetChild(0); break;
             case 2: birdTransform = player2Transform.GetChild(0); break;
@@ -69,7 +98,7 @@ public class GameManager : MonoBehaviour
     public Transform GetBirdRotationTransform(int actorNumber)
     {
         Transform birdTransform;
-        switch (actorNumber)
+        switch (actorNumber - 1)
         {
             case 1: birdTransform = player1Transform; break;
             case 2: birdTransform = player2Transform; break;
@@ -110,6 +139,13 @@ public class GameManager : MonoBehaviour
 
         List<Bird> birds = birds_table.birds.FindAll(bird => bird.rarity == rarity);
         return birds[UnityEngine.Random.Range(0, birds.Count)];
+    }
+
+    public void RemovePlayer(Player player)
+    {
+        BirdPlayer birdPlayer = birdPlayers.Find(bird => bird.ID == player.ActorNumber);
+        birdPlayer.birdTransform.GetComponent<SpriteRenderer>().sprite = null;
+        birdPlayers.Remove(birdPlayer);
     }
 
     // private async Task Testing()

@@ -20,12 +20,12 @@ public class NetworkController : MonoBehaviourPunCallbacks
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F)) SendPlayerData();
+        if (Input.GetKeyDown(KeyCode.F3)) DameInfo();
     }
 
     public override void OnConnectedToMaster()
     {
-        Debug.Log("Conectado al multiplayer: " + PhotonNetwork.CloudRegion);
+        CanvasManager.Instance.ShowMessage("Conectado al multiplayer: " + PhotonNetwork.CloudRegion);
     }
 
     public void HostGame(string room_name)
@@ -33,34 +33,17 @@ public class NetworkController : MonoBehaviourPunCallbacks
         PhotonNetwork.LocalPlayer.NickName = CanvasManager.Instance.GetTextNameValue();
         RoomOptions options = new RoomOptions();
         options.MaxPlayers = 5;
-        PhotonNetwork.CreateRoom(room_name);
+        if (PhotonNetwork.CreateRoom(room_name)) CanvasManager.Instance.DesactivateMainMenu();
     }
 
     public void ConnectToRoom(string room_name)
     {
-        PhotonNetwork.JoinRoom(room_name);
+        if (PhotonNetwork.JoinRoom(room_name)) CanvasManager.Instance.DesactivateMainMenu();
     }
 
-    public override void OnCreatedRoom()
+    public void CallRPC(string methodName, object obj)
     {
-        print("Room created!");
-        GameManager.Instance.SpawnPlayer(PhotonNetwork.LocalPlayer);
-    }
-
-    public override void OnJoinedRoom()
-    {
-        print("Joined to a room!");
-
-    }
-
-    void SendPlayerData()
-    {
-        PlayerData playerData;
-        playerData.pos_angle = 1f;
-        playerData.pos_height = 2f;
-        playerData.actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
-        playerData.action = PlayerAction.JumpRight;
-        this.photonView.RPC("PlayerJump", RpcTarget.All, JsonUtility.ToJson(playerData));
+        this.photonView.RPC(methodName, RpcTarget.All, JsonUtility.ToJson(obj));
     }
 
     private Player GetMyselfPlayer()
@@ -72,7 +55,56 @@ public class NetworkController : MonoBehaviourPunCallbacks
     public void PlayerJump(string playerDataJson)
     {
         PlayerData playerData = JsonUtility.FromJson<PlayerData>(playerDataJson);
-        print("Hola " + playerData.actorNumber);
+        GameManager.Instance.birdPlayers.Find(bird => bird.ID == playerData.actorNumber).Jump(playerData);
+    }
+
+    [PunRPC]
+    public void SummonPlayer(Player player)
+    {
+        BirdPlayer birdPlayer = GameManager.Instance.GenerateBirdPlayer(player);
+        GameManager.Instance.AddBirdPlayer(birdPlayer);
+    }
+
+    [PunRPC]
+    public void SyncPlayerList(string listJson)
+    {
+        CanvasManager.Instance.ShowMessage("Sync!");
+        List<BirdPlayer> list = JsonUtility.FromJson<List<BirdPlayer>>(listJson);
+        GameManager.Instance.birdPlayers = list;
+    }
+
+    public void UpdatePlayerList(List<BirdPlayer> list)
+    {
+        string listJson = JsonUtility.ToJson(list);
+        this.photonView.RPC("SyncPlayerList", RpcTarget.All, listJson);
+    }
+
+    public override void OnCreateRoomFailed(short returnCode, string message)
+    {
+        Debug.Log("No se ha creado el room");
+    }
+
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        CanvasManager.Instance.ShowMessage("Bienvenido, " + newPlayer.NickName);
+        GameManager.Instance.SpawnPlayer(newPlayer);
+        //if (GetMyselfPlayer().IsMasterClient) UpdatePlayerList(GameManager.Instance.birdPlayers);
+    }
+
+    public override void OnCreatedRoom()
+    {
+        print("Room created!");
+    }
+
+    public override void OnJoinedRoom()
+    {
+        print("Joined to a room!");
+        foreach (Player player in PhotonNetwork.PlayerList) GameManager.Instance.SpawnPlayer(player);
+    }
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        //GameManager.Instance.RemovePlayer(otherPlayer);
     }
 
     public void DameInfo()
@@ -87,17 +119,6 @@ public class NetworkController : MonoBehaviourPunCallbacks
         }
         print("Are we Master? " + PhotonNetwork.IsMasterClient);
         CanvasManager.Instance.ShowMessage("My Number: " + PhotonNetwork.LocalPlayer.ActorNumber);
-    }
-
-    public override void OnCreateRoomFailed(short returnCode, string message)
-    {
-        ConnectToRoom("Test"); //Si ya está creada, unirse
-    }
-
-    public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
-    {
-        CanvasManager.Instance.ShowMessage("Bienvenido, " + newPlayer.NickName);
-        GameManager.Instance.SpawnPlayer(newPlayer);
     }
 
 }

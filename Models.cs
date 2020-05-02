@@ -26,28 +26,30 @@ public class BirdPlayer
         spriteRenderer = birdTransform.GetComponent<SpriteRenderer>();
     }
 
-    float groundValue = 1.62f;
-    float jumpValue = 0f;
+    float groundValue = 5f;
+    float flutterForce = 0f;
     float gravityValue = 0f;
+    int jumpAmount = 1;
     bool movingRight = false;
     bool movingLeft = false;
+    PlayerAction lastAction = PlayerAction.None;
 
     public void Update()
     {
         if (movingRight && birdTransform.position.y > groundValue)
-            rotationPoint.Rotate(0, (-stats.force * Time.fixedDeltaTime * Mathf.Clamp(stats.force * (jumpValue * stats.velocity), 1f, 30f)) / 2, 0);
+            rotationPoint.Rotate(0, (-0.3f + -stats.force * Time.fixedDeltaTime * Mathf.Clamp(stats.force * (flutterForce * stats.velocity), 1f, 30f)), 0);
         if (movingLeft && birdTransform.position.y > groundValue)
-            rotationPoint.Rotate(0, (stats.force * Time.fixedDeltaTime * Mathf.Clamp(stats.force * (jumpValue * stats.velocity), 1f, 30f)) / 2, 0);
+            rotationPoint.Rotate(0, (0.3f + stats.force * Time.fixedDeltaTime * Mathf.Clamp(stats.force * (flutterForce * stats.velocity), 1f, 30f)), 0);
 
-        if (jumpValue > 1f)
+        if (flutterForce > 1f)
         {
-            birdTransform.Translate(Vector3.up * Time.fixedDeltaTime * Mathf.Clamp(5 - stats.weight, 1f, 4f));
+            birdTransform.Translate(Vector3.up * Time.fixedDeltaTime * Mathf.Clamp((1 + jumpAmount * 2) - stats.weight, 1f, 10f));
         }
         else
         {
             ApplyGravity();
         }
-        jumpValue = Mathf.MoveTowards(jumpValue, 0.0f, Time.fixedDeltaTime * stats.weight);
+        flutterForce = Mathf.MoveTowards(flutterForce, 0.0f, Time.fixedDeltaTime * stats.weight);
         ClampPosition();
     }
 
@@ -64,44 +66,71 @@ public class BirdPlayer
 
     void ClampPosition()
     {
-        if (birdTransform.position.y <= groundValue) spriteRenderer.sprite = sprites[0];
+        if (birdTransform.position.y <= groundValue) TouchGround();
         birdTransform.position = new Vector3(
                     birdTransform.position.x,
-                    Mathf.Clamp(birdTransform.position.y, groundValue, 8.0f),
+                    Mathf.Clamp(birdTransform.position.y, groundValue, 18.0f),
                     birdTransform.position.z
                 );
     }
 
-    public void JumpRight()
+    void TouchGround()
     {
-        spriteRenderer.flipX = true;
-        movingLeft = false;
-        movingRight = true;
-        Jump();
-
+        spriteRenderer.sprite = sprites[0];
+        lastAction = PlayerAction.None;
     }
 
-    void FlutterAnim()
+    public void Jump(PlayerData playerData)
     {
+        SetRotation(playerData.pos_angle);
+        SetHeight(playerData.pos_height);
+        flutterForce += 1 + stats.force - (1 / stats.weight);
+        gravityValue = 0f;
+        flutterForce = Mathf.Clamp(flutterForce, 0.0f, 3.0f);
+        lastAction = playerData.action;
+        FlutterAnim(playerData.action);
+    }
+
+    void FlutterAnim(PlayerAction action)
+    {
+        if (action == PlayerAction.JumpRight)
+        {
+            spriteRenderer.flipX = true;
+            movingLeft = false;
+            movingRight = true;
+        }
+        else
+        {
+            spriteRenderer.flipX = false;
+            movingLeft = true;
+            movingRight = false;
+        }
         spriteRenderer.sprite = spriteRenderer.sprite == sprites[0] ? sprites[1] : sprites[0];
     }
 
-    public void JumpLeft()
+    void SetRotation(float value)
     {
-        spriteRenderer.flipX = false;
-        movingLeft = true;
-        movingRight = false;
-        Jump();
+        rotationPoint.eulerAngles = new Vector3(0, value, 0);
     }
 
-    void Jump()
+    void SetHeight(float value)
     {
-        jumpValue += stats.force + 2 / stats.weight;
-        gravityValue = 0f;
-        jumpValue = Mathf.Clamp(jumpValue, 0.0f, 3.0f);
-        FlutterAnim();
+        birdTransform.localPosition = new Vector3(
+            birdTransform.localPosition.x,
+            value,
+            birdTransform.localPosition.z
+            );
     }
 
+    float GetRotationValue()
+    {
+        return rotationPoint.eulerAngles.y;
+    }
+
+    float GetHeightValue()
+    {
+        return birdTransform.localPosition.y;
+    }
 }
 
 [Serializable]
@@ -111,7 +140,7 @@ public struct HostData
 }
 
 [Serializable]
-public enum PlayerAction { JumpRight, JumpLeft };
+public enum PlayerAction { None, JumpRight, JumpLeft };
 
 [Serializable]
 public struct PlayerData
