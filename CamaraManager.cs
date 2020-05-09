@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum CamaraMode { Idle, Rave }
+public enum CamaraMode { Idle, Rave, StartGame }
 public class CamaraManager : MonoBehaviour
 {
     public static CamaraManager Instance;
@@ -16,9 +16,12 @@ public class CamaraManager : MonoBehaviour
 
     public void SetCameraMode(CamaraMode mode)
     {
+        Animator cameraAnimator = mainCamera.GetComponent<Animator>();
         switch (mode)
         {
-            case CamaraMode.Rave: mainCamera.GetComponent<Animator>().Play("MusicOn"); break;
+            case CamaraMode.Rave: cameraAnimator.Play("MusicOn"); break;
+            case CamaraMode.StartGame: cameraAnimator.Play("StartGame"); break;
+            default: cameraAnimator.Play("Idle"); break;
         }
     }
 }

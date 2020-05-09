@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Photon.Pun;
+using Photon.Realtime;
 
 public class CanvasManager : MonoBehaviour
 {
@@ -13,6 +15,7 @@ public class CanvasManager : MonoBehaviour
     public TextMeshProUGUI UI_text_name_input;
     public Transform UI_main_menu;
     public GameObject tabInfo;
+    public Toggle isServerToggle;
 
     private void Awake()
     {
@@ -30,7 +33,23 @@ public class CanvasManager : MonoBehaviour
     private void Update()
     {
         if (Input.GetKeyUp(KeyCode.Tab)) tabInfo.SetActive(false);
-        if (Input.GetKeyDown(KeyCode.Tab)) tabInfo.SetActive(true);
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            UpdateTabInfo();
+            tabInfo.SetActive(true);
+        }
+    }
+
+    private void UpdateTabInfo()
+    {
+        try
+        {
+            foreach (var player in PhotonNetwork.CurrentRoom.Players)
+            {
+                DisplayPlayerOnTab(player.Value.NickName, player.Key);
+            }
+        }
+        catch { Debug.LogWarning("No estás conectado a ninguna sala"); }
     }
 
     public void DisplayPlayerOnTab(string playerName, int playerNumber)
@@ -88,8 +107,7 @@ public class CanvasManager : MonoBehaviour
     public void BTN_Egg()
     {
         string textName = GetTextNameValue();
-        print(textName.Length);
-        if (textName.Length == 7)
+        if (isServerToggle.isOn)
         {
             CreateRoom();
             Debug.Log("pollando");
@@ -100,6 +118,7 @@ public class CanvasManager : MonoBehaviour
     public void DesactivateMainMenu()
     {
         UI_main_menu.gameObject.SetActive(false);
+        CamaraManager.Instance.SetCameraMode(CamaraMode.StartGame);
     }
 
 }

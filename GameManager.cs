@@ -14,9 +14,11 @@ public class GameManager : MonoBehaviour
     public BirdScriptable birds_table;
     public GameObject prefab_bird_player;
     public List<BirdPlayer> birdPlayers = new List<BirdPlayer>();
+    public KrakenPlayer krakenPlayer;
+    public Transform krakenCenter;
     public Transform player1Transform, player2Transform, player3Transform, player4Transform;
 
-    Db db = new Db();
+    //Db db = new Db();
 
     private void Awake()
     {
@@ -26,36 +28,70 @@ public class GameManager : MonoBehaviour
     private void Update()
     {
         foreach (BirdPlayer bird in birdPlayers) bird.Update();
+        krakenPlayer?.Update();
 
-        if (Input.GetKeyDown(KeyCode.Mouse0)) SendAction(PlayerAction.JumpLeft);
-        if (Input.GetKeyDown(KeyCode.Mouse1)) SendAction(PlayerAction.JumpRight);
+        if (IsKrakenPlayer())
+        {
+            if (!Input.GetKey(KeyCode.Mouse0) && !Input.GetKey(KeyCode.Mouse1)) SendAction(PlayerAction.None);
+            if (Input.GetKey(KeyCode.Mouse0) && Input.GetKey(KeyCode.Mouse1)) SendAction(PlayerAction.None);
+            if (Input.GetKeyUp(KeyCode.Mouse0) && Input.GetKey(KeyCode.Mouse1)) SendAction(PlayerAction.MoveRight);
+            if (Input.GetKeyUp(KeyCode.Mouse1) && Input.GetKey(KeyCode.Mouse0)) SendAction(PlayerAction.MoveLeft);
+        }
+        else
+        {
+            if (Input.GetKeyDown(KeyCode.Mouse0)) SendAction(PlayerAction.MoveLeft);
+            if (Input.GetKeyDown(KeyCode.Mouse1)) SendAction(PlayerAction.MoveRight);
+        }
 
+
+        if (Input.GetKeyDown(KeyCode.R)) StartMultiplayer();
         if (Input.GetKeyDown(KeyCode.P)) Cheats();
+    }
+
+    public void StartMultiplayer()
+    {
+        if (PhotonNetwork.PlayerList.Length > 1)
+        {
+            Debug.Log("Empezamos");
+        }
+        else
+        {
+            Debug.Log("Get a friend");
+        }
+    }
+
+    bool IsKrakenPlayer()
+    {
+        return krakenPlayer?.actorNumber == PhotonNetwork.LocalPlayer.ActorNumber;
     }
 
     void SendAction(PlayerAction action)
     {
-        BirdPlayer birdPlayer = GetMyBirdPlayer();
-        if (birdPlayer != null)
+        if (IsKrakenPlayer())
         {
-            PlayerData playerData = new PlayerData();
-            playerData.action = action;
-            playerData.actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
-            playerData.pos_angle = birdPlayer.rotationPoint.eulerAngles.y;
-            playerData.pos_height = birdPlayer.birdTransform.localPosition.y;
-            NetworkController.Instance.CallRPC("PlayerJump", playerData);
+            if (action == PlayerAction.MoveLeft) krakenPlayer.RotateLeft();
+            if (action == PlayerAction.MoveRight) krakenPlayer.RotateRight();
+            if (action == PlayerAction.None) krakenPlayer.RotateStop();
         }
+        else
+        {
+            BirdPlayer birdPlayer = GetMyBirdPlayer();
+            if (birdPlayer != null)
+            {
+                PlayerData playerData = new PlayerData();
+                playerData.action = action;
+                playerData.actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
+                playerData.pos_angle = birdPlayer.rotationPoint.eulerAngles.y;
+                playerData.pos_height = birdPlayer.birdTransform.localPosition.y;
+                NetworkController.Instance.CallRPC("PlayerJump", playerData);
+            }
+        }
+
     }
 
     public BirdPlayer GetMyBirdPlayer()
     {
-        return birdPlayers.Find(bird => bird.ID == PhotonNetwork.LocalPlayer.ActorNumber);
-    }
-
-    public Stats cheatStats;
-    void Cheats()
-    {
-        birdPlayers[0].stats = cheatStats;
+        return birdPlayers.Find(bird => bird.actorNumber == PhotonNetwork.LocalPlayer.ActorNumber);
     }
 
     public void UpdatePlayerListAll()
@@ -65,19 +101,23 @@ public class GameManager : MonoBehaviour
 
     public void SpawnPlayer(Player player)
     {
-        CanvasManager.Instance.DisplayPlayerOnTab(player.NickName, player.ActorNumber);
         if (player.ActorNumber > 1) AddBirdPlayer(GenerateBirdPlayer(player));
-        else AddKrakenPlayer();
+        else AddKrakenPlayer(GenerateKrakenPlayer(player));
     }
 
-    public void AddKrakenPlayer()
+    public void AddKrakenPlayer(KrakenPlayer krakenPlayer)
     {
+        this.krakenPlayer = krakenPlayer;
+    }
 
+    public KrakenPlayer GenerateKrakenPlayer(Player player)
+    {
+        return new KrakenPlayer(player.NickName, player.ActorNumber, krakenCenter, cheatStats);
     }
 
     public void AddBirdPlayer(BirdPlayer birdPlayer)
     {
-        GetBirdTransform(birdPlayer.ID).GetComponent<SpriteRenderer>().sprite = birdPlayer.sprites[0];
+        GetBirdTransform(birdPlayer.actorNumber).GetComponent<SpriteRenderer>().sprite = birdPlayer.sprites[0];
         birdPlayers.Add(birdPlayer);
         print("PlayerBird Added!");
     }
@@ -143,9 +183,15 @@ public class GameManager : MonoBehaviour
 
     public void RemovePlayer(Player player)
     {
-        BirdPlayer birdPlayer = birdPlayers.Find(bird => bird.ID == player.ActorNumber);
+        BirdPlayer birdPlayer = birdPlayers.Find(bird => bird.actorNumber == player.ActorNumber);
         birdPlayer.birdTransform.GetComponent<SpriteRenderer>().sprite = null;
         birdPlayers.Remove(birdPlayer);
+    }
+
+    public Stats cheatStats;
+    void Cheats()
+    {
+        birdPlayers[0].stats = cheatStats;
     }
 
     // private async Task Testing()

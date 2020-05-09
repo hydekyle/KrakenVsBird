@@ -1,24 +1,65 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Firebase;
-using Firebase.Database;
+// using Firebase;
+// using Firebase.Database;
 using UnityEngine;
+
+public class KrakenPlayer
+{
+    public int actorNumber;
+    public string name;
+    public Transform inferiorT, superiorT, rotationPoint;
+    public Stats stats;
+    private float legMaxTop, legMinTop;
+    public KrakenPlayer(string name, int ID, Transform centerT, Stats stats)
+    {
+        this.name = name;
+        this.actorNumber = ID;
+        this.rotationPoint = centerT;
+        this.inferiorT = centerT.Find("Inferior");
+        this.superiorT = centerT.Find("Superior");
+        this.legMaxTop = superiorT.localPosition.y;
+        this.legMinTop = inferiorT.localPosition.y;
+        this.stats = stats;
+    }
+
+    public float rotationForce = 0f;
+
+    public void Update()
+    {
+        rotationPoint.Rotate(Vector3.up * Time.deltaTime * stats.velocity * rotationForce * 2, Space.Self);
+    }
+
+    public void RotateStop()
+    {
+        rotationForce = 0f;
+    }
+
+    public void RotateLeft()
+    {
+        rotationForce = -3f * stats.force;
+    }
+
+    public void RotateRight()
+    {
+        rotationForce = 3f * stats.force;
+    }
+}
 
 public class BirdPlayer
 {
-    public int ID;
+    public int actorNumber;
     public string name;
-    public Transform rotationPoint;
-    public Transform birdTransform;
+    public Transform rotationPoint, birdTransform;
     public Stats stats;
     public Sprite[] sprites;
     public SpriteRenderer spriteRenderer;
+
     public BirdPlayer(string name, int ID, Stats stats, Transform rotationPoint, Transform birdTransform, Sprite[] sprites)
     {
         this.name = name;
-        this.ID = ID;
+        this.actorNumber = ID;
         this.rotationPoint = rotationPoint;
         this.birdTransform = birdTransform;
         this.stats = stats;
@@ -33,8 +74,14 @@ public class BirdPlayer
     bool movingRight = false;
     bool movingLeft = false;
     PlayerAction lastAction = PlayerAction.None;
+    Vector3 pos = Vector3.zero;
 
     public void Update()
+    {
+
+    }
+
+    public void Update(string pinga)
     {
         if (movingRight && birdTransform.position.y > groundValue)
             rotationPoint.Rotate(0, (-0.3f + -stats.force * Time.fixedDeltaTime * Mathf.Clamp(stats.force * (flutterForce * stats.velocity), 1f, 30f)), 0);
@@ -93,7 +140,7 @@ public class BirdPlayer
 
     void FlutterAnim(PlayerAction action)
     {
-        if (action == PlayerAction.JumpRight)
+        if (action == PlayerAction.MoveRight)
         {
             spriteRenderer.flipX = true;
             movingLeft = false;
@@ -140,7 +187,7 @@ public struct HostData
 }
 
 [Serializable]
-public enum PlayerAction { None, JumpRight, JumpLeft };
+public enum PlayerAction { None, MoveRight, MoveLeft };
 
 [Serializable]
 public struct PlayerData
@@ -175,47 +222,47 @@ public struct Stats
 
 public enum StatusDB { Disconnected, Connecting, Connected };
 
-public class Db
-{
-    FirebaseApp app;
-    FirebaseDatabase database;
-    public StatusDB status = StatusDB.Disconnected;
-    DatabaseReference playersRef;
+// public class Db
+// {
+//     FirebaseApp app;
+//     FirebaseDatabase database;
+//     public StatusDB status = StatusDB.Disconnected;
+//     DatabaseReference playersRef;
 
-    private void Init()
-    {
-        app = Firebase.FirebaseApp.DefaultInstance;
-        database = FirebaseDatabase.DefaultInstance;
-        status = StatusDB.Connected;
-        playersRef = database.RootReference.Child("Players");
-    }
+//     private void Init()
+//     {
+//         app = Firebase.FirebaseApp.DefaultInstance;
+//         database = FirebaseDatabase.DefaultInstance;
+//         status = StatusDB.Connected;
+//         playersRef = database.RootReference.Child("Players");
+//     }
 
-    public async Task<DataSnapshot> DameDatosAsync()
-    {
-        await CheckStatusDB();
-        DataSnapshot value = await playersRef.GetValueAsync();
-        return value;
-    }
+//     public async Task<DataSnapshot> DameDatosAsync()
+//     {
+//         await CheckStatusDB();
+//         DataSnapshot value = await playersRef.GetValueAsync();
+//         return value;
+//     }
 
-    public async Task CheckStatusDB()
-    {
-        if (status != StatusDB.Connected) await TryConnect();
-    }
+//     public async Task CheckStatusDB()
+//     {
+//         if (status != StatusDB.Connected) await TryConnect();
+//     }
 
-    public async Task TryConnect()
-    {
-        UnityEngine.Debug.Log("Conectando con Firebase");
-        status = StatusDB.Connecting;
-        var dependencyStatus = await Firebase.FirebaseApp.CheckAndFixDependenciesAsync();
-        if (dependencyStatus == Firebase.DependencyStatus.Available)
-        {
-            Init();
-        }
-        else
-        {
-            UnityEngine.Debug.LogError(System.String.Format(
-              "Could not resolve all Firebase dependencies: {0}", dependencyStatus));
-            status = StatusDB.Disconnected;
-        }
-    }
-}
+//     public async Task TryConnect()
+//     {
+//         UnityEngine.Debug.Log("Conectando con Firebase");
+//         status = StatusDB.Connecting;
+//         var dependencyStatus = await Firebase.FirebaseApp.CheckAndFixDependenciesAsync();
+//         if (dependencyStatus == Firebase.DependencyStatus.Available)
+//         {
+//             Init();
+//         }
+//         else
+//         {
+//             UnityEngine.Debug.LogError(System.String.Format(
+//               "Could not resolve all Firebase dependencies: {0}", dependencyStatus));
+//             status = StatusDB.Disconnected;
+//         }
+//     }
+// }

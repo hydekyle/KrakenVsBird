@@ -25,7 +25,7 @@ public class NetworkController : MonoBehaviourPunCallbacks
 
     public override void OnConnectedToMaster()
     {
-        CanvasManager.Instance.ShowMessage("Conectado al multiplayer: " + PhotonNetwork.CloudRegion);
+        CanvasManager.Instance.ShowMessage("Conectado a: " + PhotonNetwork.CloudRegion);
     }
 
     public void HostGame(string room_name)
@@ -55,7 +55,7 @@ public class NetworkController : MonoBehaviourPunCallbacks
     public void PlayerJump(string playerDataJson)
     {
         PlayerData playerData = JsonUtility.FromJson<PlayerData>(playerDataJson);
-        GameManager.Instance.birdPlayers.Find(bird => bird.ID == playerData.actorNumber).Jump(playerData);
+        GameManager.Instance.birdPlayers.Find(bird => bird.actorNumber == playerData.actorNumber).Jump(playerData);
     }
 
     [PunRPC]
