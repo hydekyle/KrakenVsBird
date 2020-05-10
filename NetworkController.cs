@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
@@ -16,11 +15,6 @@ public class NetworkController : MonoBehaviourPunCallbacks
     private void Start()
     {
         PhotonNetwork.ConnectUsingSettings();
-    }
-
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.F3)) DameInfo();
     }
 
     public override void OnConnectedToMaster()
@@ -58,25 +52,48 @@ public class NetworkController : MonoBehaviourPunCallbacks
         GameManager.Instance.birdPlayers.Find(bird => bird.actorNumber == playerData.actorNumber).Jump(playerData);
     }
 
-    [PunRPC]
-    public void SummonPlayer(Player player)
-    {
-        BirdPlayer birdPlayer = GameManager.Instance.GenerateBirdPlayer(player);
-        GameManager.Instance.AddBirdPlayer(birdPlayer);
-    }
+    // [PunRPC]
+    // public void SummonPlayer(Player player)
+    // {
+    //     BirdPlayer birdPlayer = GameManager.Instance.GenerateBirdPlayer(player);
+    //     GameManager.Instance.AddBirdPlayer(birdPlayer);
+    // }
 
     [PunRPC]
-    public void SyncPlayerList(string listJson)
+    public void SyncPlayerList(string listJSON)
     {
         CanvasManager.Instance.ShowMessage("Sync!");
-        List<BirdPlayer> list = JsonUtility.FromJson<List<BirdPlayer>>(listJson);
+        List<BirdPlayer> list = JsonUtility.FromJson<List<BirdPlayer>>(listJSON);
         GameManager.Instance.birdPlayers = list;
     }
 
     public void UpdatePlayerList(List<BirdPlayer> list)
     {
-        string listJson = JsonUtility.ToJson(list);
-        this.photonView.RPC("SyncPlayerList", RpcTarget.All, listJson);
+        string listJSON = JsonUtility.ToJson(list);
+        this.photonView.RPC("SyncPlayerList", RpcTarget.All, listJSON);
+    }
+
+    public List<string> GetPlayerNames()
+    {
+        List<string> names = new List<string>();
+        foreach (var player in PhotonNetwork.CurrentRoom.Players)
+        {
+            names.Add(player.Value.NickName);
+        }
+        return names;
+    }
+
+    [PunRPC]
+    public void CallPlayersToGame(string roundCallJSON)
+    {
+        RoundCall roundCall = JsonUtility.FromJson<RoundCall>(roundCallJSON);
+        foreach (var playerName in roundCall.playersToCall)
+            if (playerName == PhotonNetwork.LocalPlayer.NickName) ImInGame();
+    }
+
+    public void ImInGame()
+    {
+        CanvasManager.Instance.ShowMessage("IM IN GAME");
     }
 
     public override void OnCreateRoomFailed(short returnCode, string message)
@@ -87,7 +104,7 @@ public class NetworkController : MonoBehaviourPunCallbacks
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         CanvasManager.Instance.ShowMessage("Bienvenido, " + newPlayer.NickName);
-        GameManager.Instance.SpawnPlayer(newPlayer);
+        GameManager.Instance.NewPlayerEntered(newPlayer);
         //if (GetMyselfPlayer().IsMasterClient) UpdatePlayerList(GameManager.Instance.birdPlayers);
     }
 
@@ -98,27 +115,13 @@ public class NetworkController : MonoBehaviourPunCallbacks
 
     public override void OnJoinedRoom()
     {
-        print("Joined to a room!");
-        foreach (Player player in PhotonNetwork.PlayerList) GameManager.Instance.SpawnPlayer(player);
+        CanvasManager.Instance.ShowMessage("¡Conectado a la sala!");
+        foreach (Player player in PhotonNetwork.PlayerList) GameManager.Instance.NewPlayerEntered(player);
     }
 
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
         //GameManager.Instance.RemovePlayer(otherPlayer);
-    }
-
-    public void DameInfo()
-    {
-        print("Ping: " + PhotonNetwork.GetPing());
-        print("Master id of room: " + PhotonNetwork.CurrentRoom.masterClientId);
-        print("Players in room: " + PhotonNetwork.CountOfPlayersInRooms);
-        print("Rooms numbers: " + PhotonNetwork.CountOfRooms);
-        foreach (var player in PhotonNetwork.CurrentRoom.Players)
-        {
-            print(player.Key + ": " + player.Value);
-        }
-        print("Are we Master? " + PhotonNetwork.IsMasterClient);
-        CanvasManager.Instance.ShowMessage("My Number: " + PhotonNetwork.LocalPlayer.ActorNumber);
     }
 
 }

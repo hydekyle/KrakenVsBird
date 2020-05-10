@@ -12,6 +12,8 @@ public class KrakenPlayer
     public Transform inferiorT, superiorT, rotationPoint;
     public Stats stats;
     private float legMaxTop, legMinTop;
+    public PlayerAction lastAction = PlayerAction.None;
+
     public KrakenPlayer(string name, int ID, Transform centerT, Stats stats)
     {
         this.name = name;
@@ -28,22 +30,47 @@ public class KrakenPlayer
 
     public void Update()
     {
+        if (lastAction != PlayerAction.Both) Rotate(1f);
+    }
+
+    public void Rotate(float velocity)
+    {
+        bool isIdle = lastAction == PlayerAction.None;
         rotationPoint.Rotate(Vector3.up * Time.deltaTime * stats.velocity * rotationForce * 2, Space.Self);
+        inferiorT.localPosition = Vector3.Lerp(
+            inferiorT.localPosition,
+            new Vector3(inferiorT.localPosition.x, isIdle ? legMinTop : legMaxTop, inferiorT.localPosition.z),
+            isIdle ? Time.deltaTime * velocity * 3 : Time.deltaTime * velocity
+            );
+        superiorT.localPosition = Vector3.Lerp(
+            superiorT.localPosition,
+            new Vector3(superiorT.localPosition.x, isIdle ? legMaxTop : legMinTop, superiorT.localPosition.z),
+            isIdle ? Time.deltaTime * velocity * 3 : Time.deltaTime * velocity
+            );
+    }
+
+    public void FreezePosition()
+    {
+        rotationForce = 0f;
+        lastAction = PlayerAction.Both;
     }
 
     public void RotateStop()
     {
         rotationForce = 0f;
+        lastAction = PlayerAction.None;
     }
 
     public void RotateLeft()
     {
         rotationForce = -3f * stats.force;
+        lastAction = PlayerAction.MoveLeft;
     }
 
     public void RotateRight()
     {
         rotationForce = 3f * stats.force;
+        lastAction = PlayerAction.MoveRight;
     }
 }
 
@@ -187,7 +214,7 @@ public struct HostData
 }
 
 [Serializable]
-public enum PlayerAction { None, MoveRight, MoveLeft };
+public enum PlayerAction { None, MoveRight, MoveLeft, Both };
 
 [Serializable]
 public struct PlayerData
@@ -218,6 +245,12 @@ public struct Stats
         this.weight = weight;
         this.force = force;
     }
+}
+
+public struct RoundCall
+{
+    public List<string> playersToCall;
+    public double timeStamp;
 }
 
 public enum StatusDB { Disconnected, Connecting, Connected };

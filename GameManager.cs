@@ -1,12 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using System;
-using System.IO;
 using Photon.Pun;
 using Photon.Realtime;
-
 
 public class GameManager : MonoBehaviour
 {
@@ -33,15 +28,13 @@ public class GameManager : MonoBehaviour
         if (IsKrakenPlayer())
         {
             if (!Input.GetKey(KeyCode.Mouse0) && !Input.GetKey(KeyCode.Mouse1)) SendAction(PlayerAction.None);
-            if (Input.GetKey(KeyCode.Mouse0) && Input.GetKey(KeyCode.Mouse1)) SendAction(PlayerAction.None);
+            if (Input.GetKey(KeyCode.Mouse0) && Input.GetKey(KeyCode.Mouse1)) SendAction(PlayerAction.Both);
             if (Input.GetKeyUp(KeyCode.Mouse0) && Input.GetKey(KeyCode.Mouse1)) SendAction(PlayerAction.MoveRight);
             if (Input.GetKeyUp(KeyCode.Mouse1) && Input.GetKey(KeyCode.Mouse0)) SendAction(PlayerAction.MoveLeft);
         }
-        else
-        {
-            if (Input.GetKeyDown(KeyCode.Mouse0)) SendAction(PlayerAction.MoveLeft);
-            if (Input.GetKeyDown(KeyCode.Mouse1)) SendAction(PlayerAction.MoveRight);
-        }
+
+        if (Input.GetKeyDown(KeyCode.Mouse0)) SendAction(PlayerAction.MoveLeft);
+        if (Input.GetKeyDown(KeyCode.Mouse1)) SendAction(PlayerAction.MoveRight);
 
 
         if (Input.GetKeyDown(KeyCode.R)) StartMultiplayer();
@@ -53,6 +46,7 @@ public class GameManager : MonoBehaviour
         if (PhotonNetwork.PlayerList.Length > 1)
         {
             Debug.Log("Empezamos");
+            StartRound();
         }
         else
         {
@@ -71,6 +65,7 @@ public class GameManager : MonoBehaviour
         {
             if (action == PlayerAction.MoveLeft) krakenPlayer.RotateLeft();
             if (action == PlayerAction.MoveRight) krakenPlayer.RotateRight();
+            if (action == PlayerAction.Both) krakenPlayer.FreezePosition();
             if (action == PlayerAction.None) krakenPlayer.RotateStop();
         }
         else
@@ -89,6 +84,14 @@ public class GameManager : MonoBehaviour
 
     }
 
+    public void StartRound()
+    {
+        RoundCall roundCall = new RoundCall();
+        roundCall.playersToCall = NetworkController.Instance.GetPlayerNames();
+        roundCall.timeStamp = PhotonNetwork.Time;
+        NetworkController.Instance.CallRPC("CallPlayersToGame", roundCall);
+    }
+
     public BirdPlayer GetMyBirdPlayer()
     {
         return birdPlayers.Find(bird => bird.actorNumber == PhotonNetwork.LocalPlayer.ActorNumber);
@@ -99,7 +102,7 @@ public class GameManager : MonoBehaviour
         NetworkController.Instance.UpdatePlayerList(birdPlayers);
     }
 
-    public void SpawnPlayer(Player player)
+    public void NewPlayerEntered(Player player)
     {
         if (player.ActorNumber > 1) AddBirdPlayer(GenerateBirdPlayer(player));
         else AddKrakenPlayer(GenerateKrakenPlayer(player));

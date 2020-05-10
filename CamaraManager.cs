@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public enum CamaraMode { Idle, Rave, StartGame }
 public class CamaraManager : MonoBehaviour
