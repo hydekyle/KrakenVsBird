@@ -26,7 +26,8 @@ public class KrakenPlayer
         this.stats = stats;
     }
 
-    public float rotationForce = 0f;
+    public float rotation, height;
+    float rotationForce = 0f;
 
     public void Update()
     {
@@ -71,6 +72,15 @@ public class KrakenPlayer
     {
         rotationForce = 3f * stats.force;
         lastAction = PlayerAction.MoveRight;
+    }
+
+    public void MoveKraken(PlayerData playerData)
+    {
+        PlayerAction action = playerData.action;
+        if (action == PlayerAction.MoveLeft) RotateLeft();
+        if (action == PlayerAction.MoveRight) RotateRight();
+        if (action == PlayerAction.Both) FreezePosition();
+        if (action == PlayerAction.None) RotateStop();
     }
 }
 

@@ -25,7 +25,7 @@ public class GameManager : MonoBehaviour
         foreach (BirdPlayer bird in birdPlayers) bird.Update();
         krakenPlayer?.Update();
 
-        if (IsKrakenPlayer())
+        if (ImKrakenPlayer())
         {
             if (!Input.GetKey(KeyCode.Mouse0) && !Input.GetKey(KeyCode.Mouse1)) SendAction(PlayerAction.None);
             if (Input.GetKey(KeyCode.Mouse0) && Input.GetKey(KeyCode.Mouse1)) SendAction(PlayerAction.Both);
@@ -54,34 +54,40 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    bool IsKrakenPlayer()
+    bool ImKrakenPlayer()
     {
         return krakenPlayer?.actorNumber == PhotonNetwork.LocalPlayer.ActorNumber;
     }
 
     void SendAction(PlayerAction action)
     {
-        if (IsKrakenPlayer())
+        PlayerData playerData = new PlayerData();
+        playerData.action = action;
+        playerData.actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
+
+        if (ImKrakenPlayer())
         {
-            if (action == PlayerAction.MoveLeft) krakenPlayer.RotateLeft();
-            if (action == PlayerAction.MoveRight) krakenPlayer.RotateRight();
-            if (action == PlayerAction.Both) krakenPlayer.FreezePosition();
-            if (action == PlayerAction.None) krakenPlayer.RotateStop();
+            playerData.pos_angle = krakenPlayer.rotation;
+            playerData.pos_height = krakenPlayer.height;
+            NetworkController.Instance.CallRPC("KrakenAction", playerData);
         }
         else
         {
             BirdPlayer birdPlayer = GetMyBirdPlayer();
             if (birdPlayer != null)
             {
-                PlayerData playerData = new PlayerData();
-                playerData.action = action;
-                playerData.actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
+
                 playerData.pos_angle = birdPlayer.rotationPoint.eulerAngles.y;
                 playerData.pos_height = birdPlayer.birdTransform.localPosition.y;
-                NetworkController.Instance.CallRPC("PlayerJump", playerData);
+                NetworkController.Instance.CallRPC("BirdAction", playerData);
             }
         }
 
+    }
+
+    public bool IsKrakenPlayer(int actorNumber)
+    {
+        return actorNumber == krakenPlayer.actorNumber;
     }
 
     public void StartRound()

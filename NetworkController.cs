@@ -46,10 +46,17 @@ public class NetworkController : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
-    public void PlayerJump(string playerDataJson)
+    public void BirdAction(string playerDataJson)
     {
         PlayerData playerData = JsonUtility.FromJson<PlayerData>(playerDataJson);
-        GameManager.Instance.birdPlayers.Find(bird => bird.actorNumber == playerData.actorNumber).Jump(playerData);
+        GameManager.Instance.birdPlayers.Find(bird => bird.actorNumber == playerData.actorNumber)?.Jump(playerData);
+    }
+
+    [PunRPC]
+    public void KrakenAction(string playerDataJson)
+    {
+        PlayerData playerData = JsonUtility.FromJson<PlayerData>(playerDataJson);
+        GameManager.Instance.krakenPlayer.MoveKraken(playerData);
     }
 
     // [PunRPC]
