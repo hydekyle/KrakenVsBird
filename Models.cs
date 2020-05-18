@@ -102,9 +102,11 @@ public class BirdPlayer
         this.stats = stats;
         this.sprites = sprites;
         spriteRenderer = birdTransform.GetComponent<SpriteRenderer>();
+        targetPOS = new Vector3(birdTransform.localPosition.x, groundPosition, birdTransform.localPosition.z);
     }
 
-    float groundValue = 5f;
+    float groundPosition = 5f;
+    float skyPosition = 18f;
     float flutterForce = 0f;
     float gravityValue = 0f;
     int jumpAmount = 1;
@@ -113,49 +115,55 @@ public class BirdPlayer
     PlayerAction lastAction = PlayerAction.None;
     Vector3 pos = Vector3.zero;
 
+    float delta = 0f;
+    float deltaRotation = 0f;
+
     public void Update()
     {
-
+        if (lastAction != PlayerAction.None) delta += Time.fixedDeltaTime / 4;
+        InterpolateMovement(delta);
+        if (Mathf.Approximately(GetHeightValue(), groundPosition))
+            TouchGround();
     }
 
-    public void Update(string pinga)
-    {
-        if (movingRight && birdTransform.position.y > groundValue)
-            rotationPoint.Rotate(0, (-0.3f + -stats.force * Time.fixedDeltaTime * Mathf.Clamp(stats.force * (flutterForce * stats.velocity), 1f, 30f)), 0);
-        if (movingLeft && birdTransform.position.y > groundValue)
-            rotationPoint.Rotate(0, (0.3f + stats.force * Time.fixedDeltaTime * Mathf.Clamp(stats.force * (flutterForce * stats.velocity), 1f, 30f)), 0);
+    Vector3 targetPOS;
 
-        if (flutterForce > 1f)
+    void SetTargetPos()
+    {
+        if (lastAction == PlayerAction.None || lastAction == PlayerAction.Both)
         {
-            birdTransform.Translate(Vector3.up * Time.fixedDeltaTime * Mathf.Clamp((1 + jumpAmount * 2) - stats.weight, 1f, 10f));
+            targetPOS = new Vector3(MyPosition().x, groundPosition, MyPosition().z);
         }
-        else
+        if (lastAction == PlayerAction.MoveLeft)
         {
-            ApplyGravity();
+            targetPOS = new Vector3(MyPosition().x, Mathf.Clamp(MyPosition().y, MyPosition().y + 4, skyPosition), MyPosition().z);
+            //SetRotation(MyRotationValue() - Mathf.Clamp(delta, 0f, 1f));
         }
-        flutterForce = Mathf.MoveTowards(flutterForce, 0.0f, Time.fixedDeltaTime * stats.weight);
-        ClampPosition();
+        if (lastAction == PlayerAction.MoveRight)
+        {
+            targetPOS = new Vector3(MyPosition().x, Mathf.Clamp(MyPosition().y, MyPosition().y + 4, skyPosition), MyPosition().z);
+            //SetRotation(MyRotationValue() + Mathf.Clamp(delta, 0f, 1f));
+        }
     }
 
-    void ApplyGravity()
+    void InterpolateMovement(float delta)
     {
-        birdTransform.transform.Translate(Vector3.down * GetGravityValue() * Time.fixedDeltaTime);
+        if (lastAction != PlayerAction.None && delta <= 1.0f)
+        {
+            SetHeight(GetHeightValue() + delta * 3);
+        }
+        else if (delta > 1.3f) SetNoAction();
     }
 
-    float GetGravityValue()
+    void SetNoAction()
     {
-        gravityValue = Mathf.Lerp(gravityValue, 3, Time.fixedDeltaTime * stats.weight);
-        return Mathf.Pow(gravityValue, 2);
+        lastAction = PlayerAction.None;
+        delta = 0.0f;
     }
 
-    void ClampPosition()
+    Vector3 MyPosition()
     {
-        if (birdTransform.position.y <= groundValue) TouchGround();
-        birdTransform.position = new Vector3(
-                    birdTransform.position.x,
-                    Mathf.Clamp(birdTransform.position.y, groundValue, 18.0f),
-                    birdTransform.position.z
-                );
+        return birdTransform.localPosition;
     }
 
     void TouchGround()
@@ -166,11 +174,8 @@ public class BirdPlayer
 
     public void Jump(PlayerData playerData)
     {
-        SetRotation(playerData.pos_angle);
-        SetHeight(playerData.pos_height);
-        flutterForce += 1 + stats.force - (1 / stats.weight);
-        gravityValue = 0f;
-        flutterForce = Mathf.Clamp(flutterForce, 0.0f, 3.0f);
+        delta = 0.0f;
+        SetTargetPos();
         lastAction = playerData.action;
         FlutterAnim(playerData.action);
     }
@@ -201,12 +206,12 @@ public class BirdPlayer
     {
         birdTransform.localPosition = new Vector3(
             birdTransform.localPosition.x,
-            value,
+            Mathf.Clamp(value, groundPosition, skyPosition),
             birdTransform.localPosition.z
             );
     }
 
-    float GetRotationValue()
+    float MyRotationValue()
     {
         return rotationPoint.eulerAngles.y;
     }

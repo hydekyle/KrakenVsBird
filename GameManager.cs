@@ -82,7 +82,6 @@ public class GameManager : MonoBehaviour
                 NetworkController.Instance.CallRPC("BirdAction", playerData);
             }
         }
-
     }
 
     public bool IsKrakenPlayer(int actorNumber)
@@ -106,12 +105,6 @@ public class GameManager : MonoBehaviour
     public void UpdatePlayerListAll()
     {
         NetworkController.Instance.UpdatePlayerList(birdPlayers);
-    }
-
-    public void NewPlayerEntered(Player player)
-    {
-        if (player.ActorNumber > 1) AddBirdPlayer(GenerateBirdPlayer(player));
-        else AddKrakenPlayer(GenerateKrakenPlayer(player));
     }
 
     public void AddKrakenPlayer(KrakenPlayer krakenPlayer)
@@ -201,6 +194,12 @@ public class GameManager : MonoBehaviour
     void Cheats()
     {
         birdPlayers[0].stats = cheatStats;
+    }
+
+    public void NewPlayerEntered(Player player)
+    {
+        if (player.ActorNumber < 2) AddBirdPlayer(GenerateBirdPlayer(player));
+        else AddKrakenPlayer(GenerateKrakenPlayer(player));
     }
 
     // private async Task Testing()
