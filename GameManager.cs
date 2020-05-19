@@ -24,7 +24,11 @@ public class GameManager : MonoBehaviour
     {
         foreach (BirdPlayer bird in birdPlayers) bird.Update();
         krakenPlayer?.Update();
+        InputResolver();
+    }
 
+    private void InputResolver()
+    {
         if (ImKrakenPlayer())
         {
             if (!Input.GetKey(KeyCode.Mouse0) && !Input.GetKey(KeyCode.Mouse1)) SendAction(PlayerAction.None);
@@ -59,11 +63,16 @@ public class GameManager : MonoBehaviour
         return krakenPlayer?.actorNumber == PhotonNetwork.LocalPlayer.ActorNumber;
     }
 
+    public float lastTimeAction = 0f;
+    float actionCD = 0.3f;
     void SendAction(PlayerAction action)
     {
+        if (Time.time < lastTimeAction + actionCD) return;
+        lastTimeAction = Time.time;
         ActionData playerData = new ActionData();
         playerData.action = action;
         playerData.actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
+        playerData.actionTime = PhotonNetwork.ServerTimestamp + PhotonNetwork.GetPing() * 2;
 
         if (ImKrakenPlayer())
         {
@@ -76,7 +85,6 @@ public class GameManager : MonoBehaviour
             BirdPlayer birdPlayer = GetMyBirdPlayer();
             if (birdPlayer != null)
             {
-
                 playerData.pos_angle = birdPlayer.rotationPoint.eulerAngles.y;
                 playerData.pos_height = birdPlayer.birdTransform.localPosition.y;
                 NetworkController.Instance.CallRPC("BirdAction", playerData);
@@ -100,11 +108,6 @@ public class GameManager : MonoBehaviour
     public BirdPlayer GetMyBirdPlayer()
     {
         return birdPlayers.Find(bird => bird.actorNumber == PhotonNetwork.LocalPlayer.ActorNumber);
-    }
-
-    public void UpdatePlayerListAll()
-    {
-        NetworkController.Instance.UpdatePlayerList(birdPlayers);
     }
 
     public void AddKrakenPlayer(KrakenPlayer krakenPlayer)

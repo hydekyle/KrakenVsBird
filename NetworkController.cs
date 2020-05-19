@@ -62,8 +62,21 @@ public class NetworkController : MonoBehaviourPunCallbacks
     [PunRPC]
     public void BirdAction(string playerDataJson)
     {
-        ActionData playerData = JsonUtility.FromJson<ActionData>(playerDataJson);
-        GameManager.Instance.birdPlayers.Find(bird => bird.actorNumber == playerData.actorNumber)?.DoAction(playerData);
+        ActionData actionData = JsonUtility.FromJson<ActionData>(playerDataJson);
+        if (GetMyselfPlayer().ActorNumber == actionData.actorNumber) StartCoroutine("CastMyAction", actionData);
+        else CastAction(actionData);
+    }
+
+    private IEnumerator CastMyAction(ActionData actionData)
+    {
+        float timeWait = Mathf.Abs(PhotonNetwork.ServerTimestamp - actionData.actionTime) / 1000.0f;
+        yield return new WaitForSeconds(timeWait);
+        CastAction(actionData);
+    }
+
+    private void CastAction(ActionData actionData)
+    {
+        GameManager.Instance.birdPlayers.Find(bird => bird.actorNumber == actionData.actorNumber)?.DoAction(actionData);
     }
 
     [PunRPC]
@@ -71,27 +84,6 @@ public class NetworkController : MonoBehaviourPunCallbacks
     {
         ActionData playerData = JsonUtility.FromJson<ActionData>(playerDataJson);
         GameManager.Instance.krakenPlayer.MoveKraken(playerData);
-    }
-
-    // [PunRPC]
-    // public void SummonPlayer(Player player)
-    // {
-    //     BirdPlayer birdPlayer = GameManager.Instance.GenerateBirdPlayer(player);
-    //     GameManager.Instance.AddBirdPlayer(birdPlayer);
-    // }
-
-    [PunRPC]
-    public void SyncPlayerList(string listJSON)
-    {
-        CanvasManager.Instance.ShowMessage("Sync!");
-        List<BirdPlayer> list = JsonUtility.FromJson<List<BirdPlayer>>(listJSON);
-        GameManager.Instance.birdPlayers = list;
-    }
-
-    public void UpdatePlayerList(List<BirdPlayer> list)
-    {
-        string listJSON = JsonUtility.ToJson(list);
-        this.photonView.RPC("SyncPlayerList", RpcTarget.All, listJSON);
     }
 
     public List<string> GetPlayerNames()
@@ -110,6 +102,23 @@ public class NetworkController : MonoBehaviourPunCallbacks
         RoundCall roundCall = JsonUtility.FromJson<RoundCall>(roundCallJSON);
         foreach (var playerName in roundCall.playersToCall)
             if (playerName == PhotonNetwork.LocalPlayer.NickName) ImInGame();
+    }
+
+    public void CallForMusic()
+    {
+        photonView.RPC("LetsGoMusic", RpcTarget.All, PhotonNetwork.LocalPlayer.ActorNumber);
+    }
+
+    [PunRPC]
+    private void LetsGoMusic(int actorNumber)
+    {
+        if (actorNumber == PhotonNetwork.LocalPlayer.ActorNumber) Invoke("StartMusic", PhotonNetwork.GetPing() * 2 / 1000);
+        else StartMusic();
+    }
+
+    private void StartMusic()
+    {
+        AudioManager.Instance.StartMusic();
     }
 
     public void ImInGame()

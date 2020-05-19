@@ -105,49 +105,49 @@ public class BirdPlayer
         this.stats = stats;
         this.sprites = sprites;
         spriteRenderer = birdTransform.GetComponent<SpriteRenderer>();
+        lastAction = new ActionData()
+        {
+            action = PlayerAction.None,
+        };
     }
 
     float groundPosition = 5f;
     float skyPosition = 18f;
-    float flutterForce = 0f;
-    float gravityValue = 0f;
-    int jumpAmount = 1;
-    bool movingRight = false;
-    bool movingLeft = false;
-    PlayerAction lastAction = PlayerAction.None;
+    ActionData lastAction;
     Vector3 pos = Vector3.zero;
 
-    float deltaY = 0f;
-    float deltaX = 0f;
-    double lastTimeAction = 0.0;
+    int lastTimeAction = 0;
 
     public void Update()
     {
-        SetHeight(GetHeight() + deltaY);
-        SetRotation(GetRotation() + deltaX);
-
+        ApplyForces();
     }
 
-    void ApplyGravity()
+    void ApplyForces()
     {
+        float timeDelta = (PhotonNetwork.ServerTimestamp - lastTimeAction) / 100f;
+        float value = JumpFormule(timeDelta);
+        Debug.LogFormat("Value: {0}, delta: {1}", value, timeDelta);
+        SetHeight(GetHeight() + value * Time.fixedDeltaTime * 60);
+    }
 
+    float JumpFormule(float timeDelta)
+    {
+        float x = timeDelta < 0.0f ? 0.0f : timeDelta / 4f;
+        return -Mathf.Pow(-x + 1, 2) + 1;
     }
 
     public void DoAction(ActionData actionData)
     {
-        NetworkController.Instance.HydeTest();
+        SetRotation(actionData.pos_angle);
+        SetHeight(actionData.pos_height);
+        lastTimeAction = actionData.actionTime;
         switch (actionData.action)
         {
             case PlayerAction.MoveRight: Jump(actionData); break;
+            case PlayerAction.MoveLeft: Jump(actionData); break;
             default: Debug.Log("Oye..."); break;
         }
-    }
-
-
-    void SetNoAction()
-    {
-        lastAction = PlayerAction.None;
-        deltaY = 0.0f;
     }
 
     Vector3 MyPosition()
@@ -158,13 +158,10 @@ public class BirdPlayer
     void TouchGround()
     {
         spriteRenderer.sprite = sprites[0];
-        lastAction = PlayerAction.None;
     }
 
     public void Jump(ActionData playerData)
     {
-        deltaY = 0.1f;
-        lastAction = playerData.action;
         FlutterAnim(playerData.action);
     }
 
@@ -173,30 +170,30 @@ public class BirdPlayer
         if (action == PlayerAction.MoveRight)
         {
             spriteRenderer.flipX = true;
-            movingLeft = false;
-            movingRight = true;
         }
         else
         {
             spriteRenderer.flipX = false;
-            movingLeft = true;
-            movingRight = false;
         }
         spriteRenderer.sprite = spriteRenderer.sprite == sprites[0] ? sprites[1] : sprites[0];
     }
 
     void SetRotation(float value)
     {
-        rotationPoint.eulerAngles = new Vector3(0, value, 0);
+        rotationPoint.eulerAngles = Vector3.Lerp(rotationPoint.eulerAngles, new Vector3(0, value, 0), Time.deltaTime * 10);
     }
 
     void SetHeight(float value)
     {
-        birdTransform.localPosition = new Vector3(
-            birdTransform.localPosition.x,
-            Mathf.Clamp(value, groundPosition, skyPosition),
-            birdTransform.localPosition.z
-            );
+        birdTransform.localPosition = Vector3.Lerp(
+            birdTransform.localPosition,
+            new Vector3(
+                birdTransform.localPosition.x,
+                Mathf.Clamp(value, groundPosition, skyPosition),
+                birdTransform.localPosition.z
+            ),
+            Time.deltaTime * 10
+        );
     }
 
     float GetRotation()
@@ -223,7 +220,7 @@ public enum PlayerAction { None, MoveRight, MoveLeft, Both };
 public struct ActionData
 {
     public int actorNumber;
-    public double actionTime;
+    public int actionTime;
     public float pos_angle, pos_height;
     public PlayerAction action;
 }

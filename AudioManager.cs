@@ -9,6 +9,11 @@ public class AudioManager : MonoBehaviour
     public AudioSource audioSource_speakers;
     Animator animator_speakers;
 
+    private void Awake()
+    {
+        Instance = Instance ?? this;
+    }
+
     private void Start()
     {
         animator_speakers = audioSource_speakers?.GetComponent<Animator>();
@@ -16,7 +21,7 @@ public class AudioManager : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F8)) StartMusic();
+        if (Input.GetKeyDown(KeyCode.F8)) NetworkController.Instance.CallForMusic();
     }
 
     public void StartMusic()
