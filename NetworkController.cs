@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
@@ -15,6 +16,19 @@ public class NetworkController : MonoBehaviourPunCallbacks
     private void Start()
     {
         PhotonNetwork.ConnectUsingSettings();
+    }
+
+    public void HydeTest()
+    {
+        StartCoroutine(TestStamp());
+    }
+
+    IEnumerator TestStamp()
+    {
+        int firstStamp = PhotonNetwork.ServerTimestamp;
+        Debug.Log("Ahora: " + firstStamp);
+        yield return new WaitForSeconds(1);
+        Debug.Log("Milisegundos pasados: " + (PhotonNetwork.ServerTimestamp - firstStamp));
     }
 
     public override void OnConnectedToMaster()
@@ -48,14 +62,14 @@ public class NetworkController : MonoBehaviourPunCallbacks
     [PunRPC]
     public void BirdAction(string playerDataJson)
     {
-        PlayerData playerData = JsonUtility.FromJson<PlayerData>(playerDataJson);
-        GameManager.Instance.birdPlayers.Find(bird => bird.actorNumber == playerData.actorNumber)?.Jump(playerData);
+        ActionData playerData = JsonUtility.FromJson<ActionData>(playerDataJson);
+        GameManager.Instance.birdPlayers.Find(bird => bird.actorNumber == playerData.actorNumber)?.DoAction(playerData);
     }
 
     [PunRPC]
     public void KrakenAction(string playerDataJson)
     {
-        PlayerData playerData = JsonUtility.FromJson<PlayerData>(playerDataJson);
+        ActionData playerData = JsonUtility.FromJson<ActionData>(playerDataJson);
         GameManager.Instance.krakenPlayer.MoveKraken(playerData);
     }
 

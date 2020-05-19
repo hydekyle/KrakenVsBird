@@ -61,7 +61,7 @@ public class GameManager : MonoBehaviour
 
     void SendAction(PlayerAction action)
     {
-        PlayerData playerData = new PlayerData();
+        ActionData playerData = new ActionData();
         playerData.action = action;
         playerData.actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
 

@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 // using Firebase;
 // using Firebase.Database;
+using Photon.Pun;
+using Photon.Realtime;
 using UnityEngine;
 
 public class KrakenPlayer
@@ -74,7 +77,7 @@ public class KrakenPlayer
         lastAction = PlayerAction.MoveRight;
     }
 
-    public void MoveKraken(PlayerData playerData)
+    public void MoveKraken(ActionData playerData)
     {
         PlayerAction action = playerData.action;
         if (action == PlayerAction.MoveLeft) RotateLeft();
@@ -102,7 +105,6 @@ public class BirdPlayer
         this.stats = stats;
         this.sprites = sprites;
         spriteRenderer = birdTransform.GetComponent<SpriteRenderer>();
-        targetPOS = new Vector3(birdTransform.localPosition.x, groundPosition, birdTransform.localPosition.z);
     }
 
     float groundPosition = 5f;
@@ -115,50 +117,37 @@ public class BirdPlayer
     PlayerAction lastAction = PlayerAction.None;
     Vector3 pos = Vector3.zero;
 
-    float delta = 0f;
-    float deltaRotation = 0f;
+    float deltaY = 0f;
+    float deltaX = 0f;
+    double lastTimeAction = 0.0;
 
     public void Update()
     {
-        if (lastAction != PlayerAction.None) delta += Time.fixedDeltaTime / 4;
-        InterpolateMovement(delta);
-        if (Mathf.Approximately(GetHeightValue(), groundPosition))
-            TouchGround();
+        SetHeight(GetHeight() + deltaY);
+        SetRotation(GetRotation() + deltaX);
+
     }
 
-    Vector3 targetPOS;
-
-    void SetTargetPos()
+    void ApplyGravity()
     {
-        if (lastAction == PlayerAction.None || lastAction == PlayerAction.Both)
+
+    }
+
+    public void DoAction(ActionData actionData)
+    {
+        NetworkController.Instance.HydeTest();
+        switch (actionData.action)
         {
-            targetPOS = new Vector3(MyPosition().x, groundPosition, MyPosition().z);
-        }
-        if (lastAction == PlayerAction.MoveLeft)
-        {
-            targetPOS = new Vector3(MyPosition().x, Mathf.Clamp(MyPosition().y, MyPosition().y + 4, skyPosition), MyPosition().z);
-            //SetRotation(MyRotationValue() - Mathf.Clamp(delta, 0f, 1f));
-        }
-        if (lastAction == PlayerAction.MoveRight)
-        {
-            targetPOS = new Vector3(MyPosition().x, Mathf.Clamp(MyPosition().y, MyPosition().y + 4, skyPosition), MyPosition().z);
-            //SetRotation(MyRotationValue() + Mathf.Clamp(delta, 0f, 1f));
+            case PlayerAction.MoveRight: Jump(actionData); break;
+            default: Debug.Log("Oye..."); break;
         }
     }
 
-    void InterpolateMovement(float delta)
-    {
-        if (lastAction != PlayerAction.None && delta <= 1.0f)
-        {
-            SetHeight(GetHeightValue() + delta * 3);
-        }
-        else if (delta > 1.3f) SetNoAction();
-    }
 
     void SetNoAction()
     {
         lastAction = PlayerAction.None;
-        delta = 0.0f;
+        deltaY = 0.0f;
     }
 
     Vector3 MyPosition()
@@ -172,10 +161,9 @@ public class BirdPlayer
         lastAction = PlayerAction.None;
     }
 
-    public void Jump(PlayerData playerData)
+    public void Jump(ActionData playerData)
     {
-        delta = 0.0f;
-        SetTargetPos();
+        deltaY = 0.1f;
         lastAction = playerData.action;
         FlutterAnim(playerData.action);
     }
@@ -211,12 +199,12 @@ public class BirdPlayer
             );
     }
 
-    float MyRotationValue()
+    float GetRotation()
     {
         return rotationPoint.eulerAngles.y;
     }
 
-    float GetHeightValue()
+    float GetHeight()
     {
         return birdTransform.localPosition.y;
     }
@@ -232,9 +220,10 @@ public struct HostData
 public enum PlayerAction { None, MoveRight, MoveLeft, Both };
 
 [Serializable]
-public struct PlayerData
+public struct ActionData
 {
     public int actorNumber;
+    public double actionTime;
     public float pos_angle, pos_height;
     public PlayerAction action;
 }
